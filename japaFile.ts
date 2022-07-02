@@ -1,9 +1,9 @@
-import 'reflect-metadata'
-import { join } from 'path'
+import execa from 'execa'
 import getPort from 'get-port'
 import { configure } from 'japa'
+import { join } from 'path'
+import 'reflect-metadata'
 import sourceMapSupport from 'source-map-support'
-import execa from 'execa'
 
 process.env.NODE_ENV = 'testing'
 process.env.ADONIS_ACE_CWD = join(__dirname)
@@ -27,11 +27,9 @@ async function startHttpServer() {
   await new Ignitor(__dirname).httpServer().start()
 }
 
-/**
- * Configure test runner
- */
 configure({
   files: ['test/**/*.spec.ts'],
   before: [runMigrations, startHttpServer],
   after: [rollbackMigrations],
+  timeout: 10000,
 })
