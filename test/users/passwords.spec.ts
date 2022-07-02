@@ -3,6 +3,7 @@ import Hash from '@ioc:Adonis/Core/Hash'
 import Database from '@ioc:Adonis/Lucid/Database'
 import { UserFactory } from 'Database/factories'
 import test from 'japa'
+import { DateTime, Duration } from 'luxon'
 import supertest from 'supertest'
 
 const BASE_URL = `http://${process.env.HOST}:${process.env.PORT}`
@@ -80,7 +81,7 @@ test.group('Passwords', (group) => {
     assert.equal(body.status, 422)
   })
 
-  test.only('it should return 404 when using the same token twice', async (assert) => {
+  test('it should return 404 when using the same token twice', async (assert) => {
     const user = await UserFactory.create()
     const { token } = await user.related('tokens').create({ token: 'token' })
 
@@ -96,6 +97,24 @@ test.group('Passwords', (group) => {
 
     assert.equal(body.code, 'BAD_REQUEST')
     assert.equal(body.status, 404)
+  })
+
+  test('it cannot reset password if token is expired after 2 hours', async (assert) => {
+    const user = await UserFactory.create()
+    const date = DateTime.now().minus(Duration.fromISOTime('02:01'))
+    const { token } = await user.related('tokens').create({
+      token: 'token',
+      createdAt: date,
+    })
+
+    const { body } = await supertest(BASE_URL)
+      .post('/reset-password')
+      .send({ token, password: '123456' })
+      .expect(410)
+
+    assert.equal(body.message, 'Token expired')
+    assert.equal(body.code, 'E_TOKEN_EXPIRED')
+    assert.equal(body.status, 410)
   })
 
   group.beforeEach(async () => {
