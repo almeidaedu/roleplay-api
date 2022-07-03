@@ -1,11 +1,14 @@
 import Hash from '@ioc:Adonis/Core/Hash'
 import Database from '@ioc:Adonis/Lucid/Database'
+import User from 'App/Models/User'
 import test from 'japa'
 import supertest from 'supertest'
 import { UserFactory } from './../../database/factories/index'
 
-let token = ''
 const BASE_URL = `http://${process.env.HOST}:${process.env.PORT}`
+let token = ''
+let user = {} as User
+
 test.group('User', (group) => {
   test('it should create an user', async (assert) => {
     const userPayload = {
@@ -94,10 +97,7 @@ test.group('User', (group) => {
   })
 
   test('it should update an user', async (assert) => {
-    const user = await UserFactory.create()
     const email = 'test@test.com'
-    const username = 'teste'
-    const password = 'teste123'
     const avatar = 'http://github.com/eduardo-cadmus.png'
 
     const { body } = await supertest(BASE_URL)
@@ -105,19 +105,18 @@ test.group('User', (group) => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         email,
-        username,
-        password,
         avatar,
+        password: user.password,
       })
       .expect(200)
 
     assert.exists(body.user, 'User undefined')
     assert.equal(body.user.email, email, 'Email not match')
     assert.equal(body.user.avatar, avatar, 'Avatar not match')
+    assert.equal(body.user.id, user.id, 'Id not match')
   })
 
   test(`it should update the user's password`, async (assert) => {
-    const user = await UserFactory.create()
     const password = 'teste123'
 
     const { body } = await supertest(BASE_URL)
@@ -201,17 +200,17 @@ test.group('User', (group) => {
 
   group.before(async () => {
     const plainPassword = 'teste123'
-    const { email } = await UserFactory.merge({ password: plainPassword }).create()
-
+    const newUser = await UserFactory.merge({ password: plainPassword }).create()
     const { body } = await supertest(BASE_URL)
       .post('/sessions')
       .send({
-        email,
+        email: newUser.email,
         password: plainPassword,
       })
       .expect(201)
 
     token = body.token.token
+    user = newUser
   })
   group.beforeEach(async () => {
     await Database.beginGlobalTransaction()
