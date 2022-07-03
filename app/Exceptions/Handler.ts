@@ -26,6 +26,14 @@ export default class ExceptionHandler extends HttpExceptionHandler {
       })
     }
 
+    if (['E_INVALID_AUTH_UID', 'E_INVALID_AUTH_PASSWORD'].includes(exception.code || '')) {
+      return context.response.status(exception.status).send({
+        code: 'BAD_REQUEST',
+        message: 'invalid credentials',
+        status: 400,
+      })
+    }
+
     return super.handle(exception, context)
   }
 }
