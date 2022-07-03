@@ -46,7 +46,7 @@ test.group('Session', (group) => {
     assert.equal(body.message, 'invalid credentials', 'Message not match')
   })
 
-  test.only('it should return 400 when credentials are invalid', async (assert) => {
+  test('it should return 400 when credentials are invalid', async (assert) => {
     const { email } = await UserFactory.create()
     const { body } = await supertest(BASE_URL)
       .post('/sessions')
@@ -59,6 +59,49 @@ test.group('Session', (group) => {
     assert.equal(body.code, 'BAD_REQUEST', 'Code not match')
     assert.equal(body.status, 400, 'Status not match')
     assert.equal(body.message, 'invalid credentials', 'Message not match')
+  })
+
+  test('it should return 200 when user signs out', async () => {
+    const plainPassword = 'teste123'
+    const { email } = await UserFactory.merge({ password: plainPassword }).create()
+
+    const { body } = await supertest(BASE_URL)
+      .post('/sessions')
+      .send({
+        email,
+        password: plainPassword,
+      })
+      .expect(201)
+
+    const apiToken = body.token
+
+    await supertest(BASE_URL)
+      .delete('/sessions')
+      .set('Authorization', `Bearer ${apiToken}`)
+      .expect(200)
+  })
+
+  test.only('it should revoke token when user signs out', async (assert) => {
+    const plainPassword = 'teste123'
+    const { email } = await UserFactory.merge({ password: plainPassword }).create()
+
+    const { body } = await supertest(BASE_URL)
+      .post('/sessions')
+      .send({
+        email,
+        password: plainPassword,
+      })
+      .expect(201)
+
+    const apiToken = body.token
+
+    await supertest(BASE_URL)
+      .delete('/sessions')
+      .set('Authorization', `Bearer ${apiToken}`)
+      .expect(200)
+
+    const token = await Database.query().select('*').from('api_tokens')
+    assert.isEmpty(token, 'Token not revoked')
   })
 
   group.beforeEach(async () => {
