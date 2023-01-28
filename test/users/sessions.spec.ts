@@ -1,7 +1,7 @@
 import Database from '@ioc:Adonis/Lucid/Database'
 import test from 'japa'
 import supertest from 'supertest'
-import { UserFactory } from './../../database/factories/index'
+import { UserFactory } from 'Database/factories/index'
 
 const BASE_URL = `http://${process.env.HOST}:${process.env.PORT}`
 
